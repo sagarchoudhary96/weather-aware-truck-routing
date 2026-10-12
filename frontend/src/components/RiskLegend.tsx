@@ -11,7 +11,7 @@ export function RiskLegend() {
         </div>
       ))}
       <div className="legend-note">
-        Heatmap: load-aware risk at the slider time (Low is clear). Dots: risk at the truck’s arrival time.
+        Heatmap: worst risk forecast nearby at the slider time (Low is clear). Route and dots: risk on the road when the truck gets there.
       </div>
     </div>
   )
