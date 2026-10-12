@@ -35,6 +35,10 @@ class RouteSummary:
         return self.miles_by_level[RiskLevel.NO_TRAVEL] > 0
 
     @property
+    def moderate_mi(self) -> float:
+        return self.miles_by_level[RiskLevel.MODERATE]
+
+    @property
     def severe_mi(self) -> float:
         return self.miles_by_level[RiskLevel.SEVERE]
 
@@ -77,10 +81,18 @@ class Criterion:
     worse: str
     key: Callable[[RouteSummary], float]
     fmt: Callable[[float], str]
+    detail: Callable[[RouteSummary, RouteSummary], str] | None = None  # extra words after the values
 
 
 def _miles(v: float) -> str:
     return f"{v:g} mi"
+
+
+def _moderate_miles_detail(this: RouteSummary, other: RouteSummary) -> str:
+    """Average risk is hard to read alone, so name the Moderate miles behind it when they differ.
+    Example: ", with 25 mi of Moderate vs 0 mi". Empty when equal (then route length made the difference)."""
+    mine, theirs = round(this.moderate_mi, 1), round(other.moderate_mi, 1)
+    return "" if mine == theirs else f", with {_miles(mine)} of Moderate vs {_miles(theirs)}"
 
 
 def _hours(minutes: float) -> str:
@@ -97,6 +109,7 @@ CRITERIA = [
     Criterion(
         "lower average risk", "higher average risk",
         lambda s: round(s.avg_risk, 2) if s.avg_risk is not None else float("inf"), lambda v: f"{v:.2f}",
+        _moderate_miles_detail,
     ),
     Criterion("shorter travel time", "longer travel time", lambda s: round(s.trip_s / 60), _hours),
 ]
@@ -132,7 +145,8 @@ def _explain_recommendation(best: RouteSummary, runner_up: RouteSummary | None, 
     if diff is None:
         return f"Recommended: identical on every criterion to {name[runner_up.route_id]}."
     c, vb, vr = diff
-    return f"Recommended: {c.better} than {name[runner_up.route_id]} ({c.fmt(vb)} vs {c.fmt(vr)})."
+    detail = c.detail(best, runner_up) if c.detail else ""
+    return f"Recommended: {c.better} than {name[runner_up.route_id]} ({c.fmt(vb)} vs {c.fmt(vr)}){detail}."
 
 
 def _explain_why_ranked_lower(s: RouteSummary, best: RouteSummary, name: dict[str, str]) -> str:
@@ -142,7 +156,8 @@ def _explain_why_ranked_lower(s: RouteSummary, best: RouteSummary, name: dict[st
     if diff is None:
         return f"Tied with {name[best.route_id]} on every criterion."
     c, vs, vb = diff
-    return f"Ranked below {name[best.route_id]}: {c.worse} ({c.fmt(vs)} vs {c.fmt(vb)})."
+    detail = c.detail(s, best) if c.detail else ""
+    return f"Ranked below {name[best.route_id]}: {c.worse} ({c.fmt(vs)} vs {c.fmt(vb)}){detail}."
 
 
 def rank_routes(summaries: list[RouteSummary], names: dict[str, str]) -> Ranking:

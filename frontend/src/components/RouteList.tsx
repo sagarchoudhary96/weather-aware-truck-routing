@@ -5,8 +5,11 @@ import type { Route } from '../types'
 
 function RiskMilesBar({ route }: { route: Route }) {
   const total = route.distance_mi || 1
+  const breakdown = RISK_LEVELS.filter((level) => route.summary.miles_by_level[level] > 0)
+    .map((level) => `${RISK_LABEL[level]} ${formatMiles(route.summary.miles_by_level[level])}`)
+    .join(' · ')
   return (
-    <div className="risk-bar" aria-hidden>
+    <div className="risk-bar" aria-hidden title={breakdown}>
       {RISK_LEVELS.map((level) => {
         const mi = route.summary.miles_by_level[level]
         return mi > 0 ? (

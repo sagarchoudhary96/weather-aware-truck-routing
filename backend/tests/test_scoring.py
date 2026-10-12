@@ -44,7 +44,7 @@ def test_average_risk_then_travel_time_break_ties():
     result = rank_routes([a, b, c], NAMES)
     assert result.order == ["C", "B", "A"]
     assert "shorter travel time" in result.explanations["C"]
-    assert result.explanations["A"].startswith("Ranked below Route C: higher average risk")
+    assert result.explanations["A"] == "Ranked below Route C: higher average risk (0.50 vs 0.20), with 50 mi of Moderate vs 20 mi."
 
 
 def test_no_travel_disqualifies_even_if_otherwise_best():
