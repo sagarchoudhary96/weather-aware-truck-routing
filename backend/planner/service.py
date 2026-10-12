@@ -1,6 +1,8 @@
 """Trip planning: routes → driver stops → checkpoints → weather at ETA → risk → ranking."""
 
 import logging
+import math
+from collections.abc import Sequence
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta
@@ -32,6 +34,7 @@ DUPLICATE_OVERLAP = 0.9  # routes sharing ≥90% of their path count as the same
 DISPLAY_TOLERANCE_M = 40
 TRACK_STEP_S = 10 * 60
 HEATMAP_HOURS = 48
+HEATMAP_STEP = timedelta(minutes=30)
 
 
 @dataclass(frozen=True)
@@ -258,19 +261,32 @@ def _plan_warnings(routes: list[PlannedRoute], recommended_id: str | None) -> li
 
 @dataclass(frozen=True)
 class Heatmap:
-    start: datetime
-    hours: int
+    start: datetime  # time of the first value, the half hour at or before departure
+    step_minutes: int
+    hours: int  # length of the slider
     spacing_km: float
     cell_deg: tuple[float, float]  # (dlat, dlon) of each square cell
-    points: list[Coord]  # cell centres
-    risk: list[list[int | None]]  # [cell][hour] risk level 0–4
+    points: list[Coord]  # grid cell centres, then the route checkpoints
+    risk: list[list[int | None]]  # [cell][step] risk level 0–4
 
 
-def build_risk_heatmap(lines: list[list[Coord]], departure: datetime, load_lb: float, weather: OpenMeteoClient) -> Heatmap:
-    """Load-aware risk for corridor cells at departure + 0…48 hours."""
+def build_risk_heatmap(
+    lines: list[list[Coord]], departure: datetime, load_lb: float, weather: OpenMeteoClient, checkpoints: Sequence[Coord] = ()
+) -> Heatmap:
+    """Load-aware risk for corridor cells every half hour from departure to 48 hours after.
+
+    Steps sit on the clock (:00 and :30) because that's where the forecast hour changes: rain
+    and snow on the hour, wind at half past. So every step matches what a truck there would see.
+
+    The grid is coarse (12–40 km), so a storm a few km wide can fall between cells. The route
+    checkpoints are sampled as extra cells, so the heatmap matches the route colours where trucks drive.
+    """
     grid = heatmap_cells_around_routes(lines)
-    times = [departure + timedelta(hours=h) for h in range(HEATMAP_HOURS + 1)]
-    forecasts = weather.fetch_hourly_forecasts(grid.points, times[0], times[-1])
+    points = list(dict.fromkeys([*grid.points, *checkpoints]))  # routes share their start and end
+    start = departure.replace(minute=departure.minute // 30 * 30, second=0, microsecond=0)
+    steps = math.ceil((departure + timedelta(hours=HEATMAP_HOURS) - start) / HEATMAP_STEP) + 1
+    times = [start + i * HEATMAP_STEP for i in range(steps)]
+    forecasts = weather.fetch_hourly_forecasts(points, times[0], times[-1])
     risk = []
     for forecast in forecasts:
         row = []
@@ -278,4 +294,5 @@ def build_risk_heatmap(lines: list[list[Coord]], departure: datetime, load_lb: f
             level = assess_weather_risk(forecast.weather_at_time(t), load_lb).overall
             row.append(None if level is None else int(level))
         risk.append(row)
-    return Heatmap(departure, HEATMAP_HOURS, grid.spacing_km, (grid.dlat, grid.dlon), grid.points, risk)
+    step_minutes = int(HEATMAP_STEP.total_seconds() // 60)
+    return Heatmap(start, step_minutes, HEATMAP_HOURS, grid.spacing_km, (grid.dlat, grid.dlon), points, risk)

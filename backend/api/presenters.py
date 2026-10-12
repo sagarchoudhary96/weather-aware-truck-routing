@@ -90,7 +90,8 @@ def plan_to_json(plan: TripPlan) -> dict:
 
 def heatmap_to_json(h: Heatmap) -> dict:
     return {
-        "start": _to_iso_time(h.start),
+        "start": _to_iso_time(h.start),  # time of the first value in each `risk` row
+        "step_minutes": h.step_minutes,
         "hours": h.hours,
         "spacing_km": round(h.spacing_km, 2),
         "cell_deg": [round(h.cell_deg[0], 6), round(h.cell_deg[1], 6)],  # [dlat, dlon]

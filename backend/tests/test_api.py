@@ -125,6 +125,20 @@ def test_heatmap_returns_hourly_risk_per_point(client):
     assert data["hours"] == 48
     assert len(data["risk"]) == len(data["points"]) > 0
     assert data["cell_deg"][0] > 0 and data["cell_deg"][1] > data["cell_deg"][0]  # lon degrees are shorter
-    assert all(len(row) == 49 for row in data["risk"])
+    assert data["step_minutes"] == 30
+    assert all(len(row) == len(data["risk"][0]) >= 97 for row in data["risk"])  # every half hour over 48 h
     levels = {v for row in data["risk"] for v in row}
     assert levels <= {0, 4}  # calm or No Travel in this fake weather
+
+
+def test_heatmap_also_samples_the_route_checkpoints(client):
+    checkpoint = [-93.0, 41.5]  # north of 41°N, so strong wind in the fake weather
+    body = {
+        "routes": [[[ORIGIN[1], ORIGIN[0]], [DEST[1], DEST[0]]]],
+        "checkpoints": [checkpoint, checkpoint],  # routes share checkpoints, sampled once
+        "departure": (timezone.now() + timedelta(hours=1)).isoformat(),
+        "load_lb": 35_000,
+    }
+    data = client.post("/api/heatmap/", body, format="json").json()
+    assert data["points"].count(checkpoint) == 1
+    assert set(data["risk"][data["points"].index(checkpoint)]) == {4}

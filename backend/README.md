@@ -70,7 +70,7 @@ python manage.py runserver      # http://localhost:8000
 
 The response has `routes` (best first), each with `geometry`, `distance_mi`, `trip_s`, `arrival`, `summary` (miles per level, average risk, disqualified), `checkpoints` (ETA, weather, risk and reasons, covered miles, and `line_range`: the slice of `geometry` the checkpoint covers, for colouring the route), `stops`, `track` (truck position over the first 48 h), `rank`, `recommended` and `explanation`. It also carries plan-level `recommended_id` and `warnings`. Coordinates are `[lon, lat]`.
 
-`POST /api/heatmap/` takes `routes` (the plan's geometries), `departure` and `load_lb`. It returns the cell centres, the cell size and a risk level 0–4 for each cell and hour.
+`POST /api/heatmap/` takes `routes` (the plan's geometries), `departure`, `load_lb` and optionally `checkpoints` (their positions, sampled too so the heatmap matches the route colours). It returns the cell centres, the cell size and a risk level 0–4 for each cell every half hour, from `start` in steps of `step_minutes`.
 
 **Validation:**
 - Departure from 1 hour ago up to 7 days ahead.
@@ -89,7 +89,7 @@ The response has `routes` (best first), each with `geometry`, `distance_mi`, `tr
 pytest
 ```
 
-86 tests:
+87 tests:
 - risk band boundaries and load rules
 - miles per checkpoint and ranking, including ties, rounding and disqualification
 - driver-break schedules

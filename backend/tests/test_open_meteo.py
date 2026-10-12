@@ -30,6 +30,8 @@ def test_wind_uses_nearest_hour_precip_uses_containing_hour():
     f = forecast()
     w = f.weather_at_time(T0 + timedelta(minutes=10))
     assert (w.wind_mph, w.rain_in_hr) == (10, 0.2)  # 12:10 → wind 12:00, rain total for 12:00–13:00
+    w = f.weather_at_time(T0 + timedelta(minutes=30))
+    assert w.wind_mph == 20  # exactly half past rounds up to 13:00
     w = f.weather_at_time(T0 + timedelta(minutes=40))
     assert (w.wind_mph, w.rain_in_hr) == (20, 0.2)
     w = f.weather_at_time(T0 + timedelta(hours=1))

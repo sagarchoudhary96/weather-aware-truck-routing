@@ -71,8 +71,9 @@ class HeatmapView(APIView):
         serializer.is_valid(raise_exception=True)
         data = serializer.validated_data
         lines = [[(lat, lon) for lon, lat in route] for route in data["routes"]]
+        checkpoints = [(lat, lon) for lon, lat in data["checkpoints"]]
         try:
-            heatmap = build_risk_heatmap(lines, data["departure"], data["load_lb"], providers.weather_client())
+            heatmap = build_risk_heatmap(lines, data["departure"], data["load_lb"], providers.weather_client(), checkpoints)
         except ProviderError as exc:
             return _provider_error(exc)
         return Response(heatmap_to_json(heatmap))

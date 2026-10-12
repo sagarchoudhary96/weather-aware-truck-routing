@@ -52,3 +52,9 @@ class HeatmapRequestSerializer(serializers.Serializer):
     )
     departure = serializers.DateTimeField(validators=[validate_departure])
     load_lb = serializers.FloatField(min_value=0, max_value=MAX_LOAD_LB)
+    # The plan's checkpoint positions as [lon, lat]. Sampled too, so the heatmap matches the route colours.
+    checkpoints = serializers.ListField(
+        child=serializers.ListField(child=serializers.FloatField(), min_length=2, max_length=2),
+        max_length=1_000,
+        default=list,
+    )

@@ -39,12 +39,12 @@ class HourlyForecast:
         return series[i] if 0 <= i < len(series) else None
 
     def weather_at_time(self, t: datetime) -> Weather:
-        """Wind is instantaneous, so use the nearest hour. Rain and snow are totals over the
+        """Wind is instantaneous, so use the nearest hour (half past rounds up). Rain and snow are totals over the
         preceding hour, so use the hour the truck is driving in: the one starting at or before t.
         Example: 14:20 and exactly 14:00 both use the 14:00–15:00 total (labelled 15:00).
         This also keeps the heatmap at slider time 14:00 in step with a truck arriving then."""
         ts = t.timestamp()
-        nearest = round(ts / HOUR_S) * HOUR_S
+        nearest = math.floor(ts / HOUR_S + 0.5) * HOUR_S  # round() would send exact halves to even
         bucket_end = (math.floor(ts / HOUR_S) + 1) * HOUR_S
         return Weather(
             wind_mph=self._value_for_hour(self.wind, nearest),
