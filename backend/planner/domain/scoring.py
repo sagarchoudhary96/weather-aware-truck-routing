@@ -9,7 +9,7 @@ Ranking compares routes criterion by criterion, moving to the next only on a tie
 Values are rounded before comparing (0.1 mi, 0.01 risk, 1 min) so float noise never decides a winner.
 
 Example: A has 25 Severe mi (fastest), B has 50 High mi, C has 25 High mi (slowest).
-B and C beat A on Severe miles; C beats B on High miles → order C, B, A.
+B and C beat A on Severe miles, C beats B on High miles → order C, B, A.
 """
 
 from collections.abc import Callable
@@ -53,7 +53,7 @@ def summarize_route_risk(
     """Add up each checkpoint's covered miles by its risk level.
 
     Example: levels [Low, Moderate, Severe, Moderate, Low] covering [12.5, 25, 25, 25, 12.5] mi
-    → Severe 25 mi, Moderate 50 mi, Low 25 mi; average risk (0·25 + 1·50 + 3·25) / 100 = 1.25.
+    → Severe 25 mi, Moderate 50 mi, Low 25 mi, and average risk (0·25 + 1·50 + 3·25) / 100 = 1.25.
     Unknown checkpoints are counted separately and left out of the average.
     """
     by_level = {level: 0.0 for level in RiskLevel}
@@ -125,7 +125,7 @@ def _first_criterion_that_differs(a: RouteSummary, b: RouteSummary) -> tuple[Cri
 
 def _explain_recommendation(best: RouteSummary, runner_up: RouteSummary | None, name: dict[str, str]) -> str:
     if best.disqualified:
-        return "Every route crosses No Travel conditions; this one is the least bad."
+        return "Every route crosses No Travel conditions, this one is the least bad."
     if runner_up is None:
         return "Only route available."
     diff = _first_criterion_that_differs(best, runner_up)

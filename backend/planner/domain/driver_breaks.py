@@ -39,8 +39,8 @@ class DriverBreakPlan:
     def for_total_driving_time(cls, total_drive_s: float, apply_hos: bool = True) -> "DriverBreakPlan":
         """Which stops does a trip with this much driving need?
 
-        Examples: 8 h → none; 9 h → break at 8 h; 12 h → break at 8 h, rest at 11 h;
-        25 h → break 8 h, rest 11 h, break 19 h, rest 22 h.
+        Examples: 8 h → none, 9 h → break at 8 h, 12 h → break at 8 h and rest at 11 h,
+        25 h → breaks at 8 h and 19 h and rests at 11 h and 22 h.
         """
         if not apply_hos:
             return cls([])
@@ -70,8 +70,8 @@ class DriverBreakPlan:
     def driving_completed_at(self, elapsed_s: float) -> float:
         """The reverse: how much driving is done at a trip-clock time? It stays constant during stops.
 
-        Used to place the truck on the slider. Example (12 h trip): 8.2 h → 8 h (on break);
-        15 h → 11 h (resting); 22 h → 11.5 h.
+        Used to place the truck on the slider. Example (12 h trip): 8.2 h → 8 h (on break),
+        15 h → 11 h (resting), 22 h → 11.5 h.
         """
         offset = 0.0
         for stop in self.stops:

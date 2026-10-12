@@ -48,12 +48,12 @@ def _level_for_value(value: float, bounds: tuple[float, ...]) -> RiskLevel:
 
 
 def classify_rain(in_hr: float) -> RiskLevel:
-    """Example: 0.30 in/hr → High; 1.00 → Severe; 1.01 → No Travel."""
+    """Example: 0.30 in/hr → High, 1.00 → Severe, 1.01 → No Travel."""
     return NT if in_hr > RAIN_NO_TRAVEL_ABOVE else _level_for_value(in_hr, RAIN_BOUNDS_IN_HR)
 
 
 def classify_snow(in_hr: float) -> RiskLevel:
-    """Example: 0.7 in/hr → Moderate; 3.0 → Severe; 3.1 → No Travel."""
+    """Example: 0.7 in/hr → Moderate, 3.0 → Severe, 3.1 → No Travel."""
     return NT if in_hr > SNOW_NO_TRAVEL_ABOVE else _level_for_value(in_hr, SNOW_BOUNDS_IN_HR)
 
 
@@ -62,7 +62,7 @@ def classify_wind(mph: float, load_lb: float) -> tuple[RiskLevel, str | None]:
 
     - 45–54 mph with a load over 30,000 lb → No Travel (instead of Severe)
     - 35–44 mph with a load over 40,000 lb → Severe (instead of High)
-    Examples: 50 mph + 35,000 lb → No Travel; 40 mph + exactly 40,000 lb → stays High.
+    Examples: 50 mph + 35,000 lb → No Travel, 40 mph + exactly 40,000 lb → stays High.
     Returns (level, the load rule that applied, if any).
     """
     level = _level_for_value(mph, WIND_BOUNDS_MPH)

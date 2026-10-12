@@ -3,7 +3,7 @@ from enum import IntEnum
 
 
 class RiskLevel(IntEnum):
-    """Ordered so that a higher value is riskier; the value doubles as the 0–4 risk score."""
+    """Ordered so that a higher value is riskier, the value doubles as the 0–4 risk score."""
 
     LOW = 0
     MODERATE = 1

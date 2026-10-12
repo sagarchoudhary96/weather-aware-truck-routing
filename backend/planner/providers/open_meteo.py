@@ -20,7 +20,7 @@ log = logging.getLogger(__name__)
 URL = "https://api.open-meteo.com/v1/forecast"
 HOURLY_VARS = "wind_speed_10m,wind_gusts_10m,rain,showers,snowfall"
 CHUNK_SIZE = 100  # locations per request
-COORD_DECIMALS = 2  # ~1 km; nearby points share one lookup
+COORD_DECIMALS = 2  # ~1 km, nearby points share one lookup
 FORECAST_HORIZON = timedelta(days=15)
 CACHE_TTL_S = 30 * 60
 HOUR_S = 3600
@@ -28,7 +28,7 @@ HOUR_S = 3600
 
 @dataclass(frozen=True)
 class HourlyForecast:
-    start: int  # unix seconds of the first hour; values are hourly from there
+    start: int  # unix seconds of the first hour, values are hourly from there
     wind: list[float | None]
     gust: list[float | None]
     rain: list[float | None]  # rain + showers, in/hr
@@ -120,7 +120,7 @@ class OpenMeteoClient:
                 if not attempt:
                     time.sleep(1.5)
                     continue
-                raise ProviderError("Weather service is busy; please retry shortly.")
+                raise ProviderError("Weather service is busy, please retry shortly.")
             if response.status_code != 200:
                 reason = response.json().get("reason", response.text[:200])
                 raise ProviderError(f"Weather service rejected the request: {reason}")

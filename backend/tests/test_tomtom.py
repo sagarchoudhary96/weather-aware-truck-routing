@@ -47,7 +47,7 @@ def test_missing_final_instruction_uses_summary_total():
 
 
 def test_legs_are_concatenated_and_duplicate_indices_ignored():
-    # Point indices count across all legs; the via point repeats as the next leg's first point.
+    # Point indices count across all legs, the via point repeats as the next leg's first point.
     r = route(
         [points(40.0, 40.1), points(40.1, 40.2)],
         [ins(0, 0), ins(2, 100), ins(2, 100), ins(3, 300)],
