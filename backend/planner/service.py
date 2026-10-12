@@ -9,7 +9,9 @@ from .domain.driver_breaks import DriverBreakPlan
 from .domain.geometry import (
     METERS_PER_MILE,
     Coord,
+    RouteWithTimings,
     checkpoint_distances_from_start_m,
+    coverage_boundaries_m,
     road_length_covered_by_each_checkpoint,
     detour_waypoints_either_side,
     share_of_route_overlapping,
@@ -48,6 +50,7 @@ class Checkpoint:
     coord: Coord
     eta: datetime
     covered_mi: float
+    line_range: tuple[int, int]  # first and last index of this checkpoint's stretch in the route's line
     weather: Weather
     risk: RiskAssessment
 
@@ -66,7 +69,7 @@ class PlannedRoute:
     id: str
     name: str
     generated: bool  # forced through a detour point because the API returned fewer routes
-    line: list[Coord]
+    line: list[Coord]  # simplified for drawing, split exactly at checkpoint boundaries
     distance_mi: float
     drive_s: float
     trip_s: float
@@ -75,7 +78,6 @@ class PlannedRoute:
     stops: list[PlannedStop]
     track: list[tuple[float, Coord]]  # (seconds since departure, position), first 48 h
     summary: RouteSummary
-    notices: list[str]
 
 
 @dataclass(frozen=True)
@@ -95,7 +97,7 @@ class RouteOption:
 
 
 def fetch_three_route_options(routing: TomTomClient, req: TripRequest) -> list[RouteOption]:
-    """Up to three distinct routes; tops up with detour routes when the API returns fewer."""
+    """Up to three distinct routes, tops up with detour routes when the API returns fewer."""
     options: list[RouteOption] = []
 
     def add_unless_duplicate(route: TruckRoute, generated: bool) -> None:
@@ -154,6 +156,23 @@ def _schedule_checkpoints(option: RouteOption, req: TripRequest) -> ScheduledRou
     return ScheduledRoute(option, break_plan, positions_m, coords, etas)
 
 
+def _line_split_by_checkpoint(route_timings: RouteWithTimings, positions_m: list[float]) -> tuple[list[Coord], list[tuple[int, int]]]:
+    """The route line for drawing, cut exactly at each checkpoint's coverage boundaries,
+    plus the index range of each checkpoint's piece in it (pieces share their boundary point).
+
+    Example: 3 checkpoints → line [p0 … p9] with ranges [(0, 3), (3, 7), (7, 9)].
+    """
+    boundaries = coverage_boundaries_m(positions_m)
+    line: list[Coord] = []
+    ranges: list[tuple[int, int]] = []
+    for start_m, end_m in zip(boundaries, boundaries[1:]):
+        piece = reduce_points_for_drawing(route_timings.points_between(start_m, end_m), DISPLAY_TOLERANCE_M)
+        first = max(len(line) - 1, 0)
+        line += piece[1:] if line else piece
+        ranges.append((first, len(line) - 1))
+    return line, ranges
+
+
 def _build_planned_route(
     route_id: str, scheduled: ScheduledRoute, forecasts: list[HourlyForecast], req: TripRequest
 ) -> PlannedRoute:
@@ -161,14 +180,15 @@ def _build_planned_route(
     option, break_plan = scheduled.option, scheduled.break_plan
     route_timings = option.route.route_timings
     covered_mi = [m / METERS_PER_MILE for m in road_length_covered_by_each_checkpoint(scheduled.checkpoint_positions_m)]
+    line, line_ranges = _line_split_by_checkpoint(route_timings, scheduled.checkpoint_positions_m)
 
     checkpoints = []
-    for position_m, coord, eta, covered, forecast in zip(
-        scheduled.checkpoint_positions_m, scheduled.checkpoint_coords, scheduled.checkpoint_etas, covered_mi, forecasts
+    for position_m, coord, eta, covered, line_range, forecast in zip(
+        scheduled.checkpoint_positions_m, scheduled.checkpoint_coords, scheduled.checkpoint_etas, covered_mi, line_ranges, forecasts
     ):
         weather = forecast.weather_at_time(eta)
         risk = assess_weather_risk(weather, req.load_lb)
-        checkpoints.append(Checkpoint(position_m / METERS_PER_MILE, coord, eta, covered, weather, risk))
+        checkpoints.append(Checkpoint(position_m / METERS_PER_MILE, coord, eta, covered, line_range, weather, risk))
 
     stops = []
     for stop in break_plan.stops:
@@ -183,7 +203,7 @@ def _build_planned_route(
         id=route_id,
         name=f"Route {route_id}",
         generated=option.generated,
-        line=option.line,
+        line=line,
         distance_mi=distance_mi,
         drive_s=route_timings.total_drive_s,
         trip_s=trip_s,
@@ -192,7 +212,6 @@ def _build_planned_route(
         stops=stops,
         track=_truck_position_timeline(option, break_plan, trip_s),
         summary=summarize_route_risk(route_id, distance_mi, trip_s, [c.risk.overall for c in checkpoints], covered_mi),
-        notices=option.route.notices,
     )
 
 
@@ -233,7 +252,7 @@ def _plan_warnings(routes: list[PlannedRoute], recommended_id: str | None) -> li
         warnings.append(f"Only {len(routes)} distinct route(s) found between these points.")
     for r in routes:
         if r.summary.unknown_mi:
-            warnings.append(f"{r.name}: no forecast for {r.summary.unknown_mi:.0f} mi; excluded from risk totals.")
+            warnings.append(f"{r.name}: no forecast for {r.summary.unknown_mi:.0f} mi, excluded from risk totals.")
     return warnings
 
 

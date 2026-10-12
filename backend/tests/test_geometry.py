@@ -2,7 +2,8 @@ import pytest
 
 from planner.domain.geometry import (
     METERS_PER_MILE,
-    route_with_timings_from_segments,
+    coverage_boundaries_m,
+    route_with_timings_from_known_times,
     checkpoint_distances_from_start_m,
     road_length_covered_by_each_checkpoint,
     straight_line_distance_m,
@@ -28,10 +29,23 @@ def test_coverage_splits_halfway_and_sums_to_length():
     assert sum(road_length_covered_by_each_checkpoint([0, 10, 20, 23])) == 23
 
 
-def test_route_timings_spread_segment_durations_by_distance():
-    # Three vertices on a meridian, equally spaced; span 1 is slow, span 2 fast.
+def test_coverage_boundaries_fall_halfway_between_checkpoints():
+    assert coverage_boundaries_m([0, 25, 50, 75, 90]) == [0, 12.5, 37.5, 62.5, 82.5, 90]
+    assert coverage_boundaries_m([0]) == [0, 0]
+
+
+def test_points_between_cuts_exactly_at_both_ends():
     coords = [(40.0, -100.0), (40.1, -100.0), (40.2, -100.0), (40.3, -100.0)]
-    route_timings = route_with_timings_from_segments(coords, segment_starts=[0, 2], segment_durations=[600, 100])
+    route = route_with_timings_from_known_times(coords, {0: 0, 3: 60})
+    step = route.total_m / 3
+    piece = route.points_between(step / 2, step * 2.5)
+    assert [round(lat, 3) for lat, _ in piece] == [40.05, 40.1, 40.2, 40.25]
+
+
+def test_route_timings_spread_known_times_by_distance():
+    # Four points on a meridian, equally spaced, P0→P2 is slow and P2→P3 fast.
+    coords = [(40.0, -100.0), (40.1, -100.0), (40.2, -100.0), (40.3, -100.0)]
+    route_timings = route_with_timings_from_known_times(coords, {0: 0, 2: 600, 3: 700})
     assert route_timings.drive_s == pytest.approx([0, 300, 600, 700])
 
     (lat, _), t = route_timings.position_and_drive_time_at(route_timings.total_m / 2)
@@ -44,7 +58,7 @@ def test_route_timings_spread_segment_durations_by_distance():
 
 
 def test_route_timings_clamp_outside_range():
-    route_timings = route_with_timings_from_segments([(40.0, -100.0), (40.1, -100.0)], [0], [60])
+    route_timings = route_with_timings_from_known_times([(40.0, -100.0), (40.1, -100.0)], {0: 0, 1: 60})
     assert route_timings.position_and_drive_time_at(-5)[1] == 0
     assert route_timings.position_and_drive_time_at(1e9)[1] == 60
 

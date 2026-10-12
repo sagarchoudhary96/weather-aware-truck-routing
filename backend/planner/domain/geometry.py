@@ -8,7 +8,7 @@
 """
 
 import math
-from bisect import bisect_right
+from bisect import bisect_left, bisect_right
 from dataclasses import dataclass
 
 EARTH_RADIUS_M = 6_371_008.8
@@ -95,6 +95,17 @@ class RouteWithTimings:
         lat, lon, drive_s = _values_at_position(self.dist_m, distance_m, self.lats, self.lons, self.drive_s)
         return (lat, lon), drive_s
 
+    def points_between(self, start_m: float, end_m: float) -> list[Coord]:
+        """The stretch of route from `start_m` to `end_m`, cut exactly at both ends.
+
+        Used to colour the route by checkpoint risk. Example (table above): 5,000 → 25,000 m
+        gives [halfway P0–P1, P1, P2, halfway P2–P3].
+        """
+        start, _ = self.position_and_drive_time_at(start_m)
+        end, _ = self.position_and_drive_time_at(end_m)
+        first, last = bisect_right(self.dist_m, start_m), bisect_left(self.dist_m, end_m)
+        return [start, *zip(self.lats[first:last], self.lons[first:last]), end]
+
     def position_and_distance_after(self, drive_s: float) -> tuple[Coord, float]:
         """After `drive_s` seconds of driving, where is the truck and how far has it gone?
 
@@ -104,26 +115,24 @@ class RouteWithTimings:
         return (lat, lon), distance_m
 
 
-def route_with_timings_from_segments(
-    points: list[Coord], segment_starts: list[int], segment_durations: list[float]
-) -> RouteWithTimings:
-    """Build RouteWithTimings when times are only known for stretches of the route, not every point.
+def route_with_timings_from_known_times(points: list[Coord], seconds_at_point: dict[int, float]) -> RouteWithTimings:
+    """Build RouteWithTimings when the driving time is known only at some points, not every point.
 
-    TomTom gives times at its turn instructions only. Each stretch's time is spread over its
-    points in proportion to distance. A stretch starts at point index `segment_starts[i]` and
-    ends where the next one starts (the last ends at the final point).
+    TomTom gives the time from the start at its turn instructions only. Between two known points
+    the time is spread in proportion to distance. `seconds_at_point` must include the first and
+    last point indices and must not decrease along the route.
 
-    Example: 4 points 10 km apart, segment_starts=[0, 2], segment_durations=[600, 100]
-    (P0→P2 takes 600 s, P2→P3 takes 100 s) → drive_s = [0, 300, 600, 700].
+    Example: 4 points 10 km apart, {0: 0, 2: 600, 3: 700} → drive_s = [0, 300, 600, 700].
     """
     distances = distance_from_start_at_each_point_m(points)
     drive = [0.0] * len(points)
-    ends = segment_starts[1:] + [len(points) - 1]
-    for start, end, duration in zip(segment_starts, ends, segment_durations):
+    known = sorted(seconds_at_point)
+    for start, end in zip(known, known[1:]):
+        start_s, end_s = seconds_at_point[start], seconds_at_point[end]
         length = distances[end] - distances[start]
-        for i in range(start + 1, end + 1):
+        for i in range(start, end + 1):
             share = (distances[i] - distances[start]) / length if length else (i - start) / (end - start)
-            drive[i] = drive[start] + duration * share
+            drive[i] = start_s + (end_s - start_s) * share
     return RouteWithTimings([p[0] for p in points], [p[1] for p in points], distances, drive)
 
 
@@ -139,16 +148,24 @@ def checkpoint_distances_from_start_m(total_m: float, interval_m: float) -> list
     return positions
 
 
+def coverage_boundaries_m(checkpoint_positions: list[float]) -> list[float]:
+    """Where each checkpoint's stretch of road starts and ends. Every point uses its nearest
+    checkpoint, so the boundaries fall halfway between neighbours.
+
+    Example (miles): [0, 25, 50, 75, 90] → [0, 12.5, 37.5, 62.5, 82.5, 90].
+    """
+    first, last = checkpoint_positions[0], checkpoint_positions[-1]
+    halfway = ((here + after) / 2 for here, after in zip(checkpoint_positions, checkpoint_positions[1:]))
+    return [first, *halfway, last] if len(checkpoint_positions) > 1 else [first, first]
+
+
 def road_length_covered_by_each_checkpoint(checkpoint_positions: list[float]) -> list[float]:
-    """How much road does each checkpoint stand for? Every point uses its nearest checkpoint,
-    so boundaries fall halfway between neighbours, and the lengths add up to the route length.
+    """How much road does each checkpoint stand for? The gaps between its coverage boundaries,
+    which add up to the route length.
 
     Example (miles): [0, 25, 50, 75, 90] → [12.5, 25, 25, 20, 7.5].
     """
-    if len(checkpoint_positions) == 1:
-        return [0.0]
-    halfway = ((here + after) / 2 for here, after in zip(checkpoint_positions, checkpoint_positions[1:]))
-    boundaries = [checkpoint_positions[0], *halfway, checkpoint_positions[-1]]
+    boundaries = coverage_boundaries_m(checkpoint_positions)
     return [end - start for start, end in zip(boundaries, boundaries[1:])]
 
 
@@ -207,7 +224,7 @@ def share_of_route_overlapping(
 ) -> float:
     """What fraction of `route` runs within `within_m` of `other_route`? (0 to 1)
 
-    Samples 60 points along `route`. Example: two routes sharing the same highway → ~1.0;
+    Samples 60 points along `route`. Example: two routes sharing the same highway → ~1.0,
     I-80 vs I-70 between Denver and Salt Lake City → near 0. ≥ 0.9 counts as a duplicate.
     """
     length = distance_from_start_at_each_point_m(route)[-1]

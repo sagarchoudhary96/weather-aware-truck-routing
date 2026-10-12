@@ -8,7 +8,7 @@ from urllib.parse import quote
 import httpx
 from django.core.cache import cache
 
-from planner.domain.geometry import Coord, RouteWithTimings, route_with_timings_from_segments
+from planner.domain.geometry import Coord, RouteWithTimings, route_with_timings_from_known_times
 
 from .errors import NoRouteError, ProviderError
 
@@ -17,9 +17,9 @@ log = logging.getLogger(__name__)
 ROUTE_URL = "https://api.tomtom.com/routing/1/calculateRoute/{locations}/json"
 SEARCH_URL = "https://api.tomtom.com/search/2/search/{query}.json"
 KG_PER_LB = 0.45359237
-# TomTom restricts roads by gross vehicle weight; the user enters cargo weight.
+# TomTom restricts roads by gross vehicle weight, the user enters cargo weight.
 TRUCK_TARE_LB = 35_000
-# Typical fleet speed governor; without it TomTom assumes posted limits (~73 mph averages).
+# Typical fleet speed governor, without it TomTom assumes posted limits (~73 mph averages).
 TRUCK_MAX_SPEED_KMH = 105  # 65 mph
 ROUTE_CACHE_S = 10 * 60  # re-planning with a different checkpoint interval reuses routes
 
@@ -27,7 +27,6 @@ ROUTE_CACHE_S = 10 * 60  # re-planning with a different checkpoint interval reus
 @dataclass(frozen=True)
 class TruckRoute:
     route_timings: RouteWithTimings
-    notices: list[str]
 
 
 @dataclass(frozen=True)
@@ -43,7 +42,7 @@ def gross_vehicle_weight_kg(load_lb: float) -> int:
 
 def parse_route_with_timings(route: dict) -> TruckRoute:
     """Build route timings from the route's points and its guidance instructions, which carry the
-    cumulative travel time at a point index. Time between instructions is spread by distance."""
+    travel time from the start at a point index. Time between instructions is spread by distance."""
     points: list[Coord] = [(p["latitude"], p["longitude"]) for leg in route["legs"] for p in leg["points"]]
     last_index = len(points) - 1
 
@@ -54,12 +53,10 @@ def parse_route_with_timings(route: dict) -> TruckRoute:
         seconds_at_point.setdefault(index, instruction["travelTimeInSeconds"])
     seconds_at_point.setdefault(last_index, route["summary"]["travelTimeInSeconds"])
 
-    timed_indices = sorted(seconds_at_point)
-    seconds = [seconds_at_point[i] for i in timed_indices]
-    for i in range(1, len(seconds)):  # guard against out-of-order timestamps
-        seconds[i] = max(seconds[i], seconds[i - 1])
-    segment_durations = [end - start for start, end in zip(seconds, seconds[1:])]
-    return TruckRoute(route_with_timings_from_segments(points, timed_indices[:-1], segment_durations), notices=[])
+    latest_s = 0.0
+    for index in sorted(seconds_at_point):  # guard against out-of-order timestamps
+        latest_s = seconds_at_point[index] = max(seconds_at_point[index], latest_s)
+    return TruckRoute(route_with_timings_from_known_times(points, seconds_at_point))
 
 
 def _error_message(response: httpx.Response) -> str:
@@ -87,7 +84,7 @@ class TomTomClient:
         if response.status_code in (401, 403):
             raise ProviderError("Routing service rejected the API key.")
         if response.status_code == 429:
-            raise ProviderError("Routing service rate limit reached; please retry shortly.")
+            raise ProviderError("Routing service rate limit reached, please retry shortly.")
         if response.status_code != 200:
             message = _error_message(response)
             log.warning("TomTom returned %s: %s", response.status_code, message)

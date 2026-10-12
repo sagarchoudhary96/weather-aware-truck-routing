@@ -16,7 +16,7 @@ python manage.py runserver      # http://localhost:8000
 | Variable | Purpose | Default |
 |---|---|---|
 | `TOMTOM_API_KEY` | Routing and autocomplete | required |
-| `DJANGO_SECRET_KEY` | Django signing key; any random string | dev-only value |
+| `DJANGO_SECRET_KEY` | Django signing key, any random string | dev-only value |
 | `DJANGO_DEBUG` | `true` for local development | `false` |
 | `DJANGO_ALLOWED_HOSTS` | Comma-separated hosts | `localhost,127.0.0.1` |
 | `DJANGO_HTTPS_ONLY` | `true` in production: redirect to HTTPS and send HSTS | `false` |
@@ -30,7 +30,7 @@ python manage.py runserver      # http://localhost:8000
 | `api/views.py` | HTTP endpoints: health, places, plan, heatmap |
 | `api/serializers.py` | Request validation (departure window, load, interval, origin ≠ destination) |
 | `api/presenters.py` | Domain results → JSON |
-| `planner/service.py` | Trip pipeline: routes → driver breaks → checkpoints → forecast → risk → ranking; heatmap builder |
+| `planner/service.py` | Trip pipeline: routes → driver breaks → checkpoints → forecast → risk → ranking, heatmap builder |
 | `planner/domain/risk.py` | Risk bands and load rules (`assess_weather_risk`) |
 | `planner/domain/scoring.py` | Miles per level, average risk, ranking and explanations (`rank_routes`) |
 | `planner/domain/driver_breaks.py` | Hours-of-service stops and trip clock (`DriverBreakPlan`) |
@@ -68,7 +68,7 @@ python manage.py runserver      # http://localhost:8000
 }
 ```
 
-The response has `routes` (best first), each with `geometry`, `distance_mi`, `trip_s`, `arrival`, `summary` (miles per level, average risk, disqualified), `checkpoints` (ETA, weather, risk and reasons, covered miles), `stops`, `track` (truck position over the first 48 h), `rank`, `recommended` and `explanation`. It also carries plan-level `recommended_id` and `warnings`. Coordinates are `[lon, lat]`.
+The response has `routes` (best first), each with `geometry`, `distance_mi`, `trip_s`, `arrival`, `summary` (miles per level, average risk, disqualified), `checkpoints` (ETA, weather, risk and reasons, covered miles, and `line_range`: the slice of `geometry` the checkpoint covers, for colouring the route), `stops`, `track` (truck position over the first 48 h), `rank`, `recommended` and `explanation`. It also carries plan-level `recommended_id` and `warnings`. Coordinates are `[lon, lat]`.
 
 `POST /api/heatmap/` takes `routes` (the plan's geometries), `departure` and `load_lb`. It returns the cell centres, the cell size and a risk level 0–4 for each cell and hour.
 
@@ -89,12 +89,12 @@ The response has `routes` (best first), each with `geometry`, `distance_mi`, `tr
 pytest
 ```
 
-82 tests:
-- risk band boundaries and load rules;
-- miles per checkpoint and ranking, including ties, rounding and disqualification;
-- driver-break schedules;
-- geometry;
-- provider parsing and caching (mocked HTTP);
+85 tests:
+- risk band boundaries and load rules
+- miles per checkpoint and ranking, including ties, rounding and disqualification
+- driver-break schedules
+- geometry
+- provider parsing and caching (mocked HTTP)
 - end-to-end API tests with fake providers.
 
 ## Deploy (Render, free tier)

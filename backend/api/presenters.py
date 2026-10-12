@@ -29,6 +29,7 @@ def _checkpoint_json(c: Checkpoint) -> dict:
         "position": _to_lon_lat(c.coord),
         "eta": _to_iso_time(c.eta),
         "covered_mi": round(c.covered_mi, 2),
+        "line_range": list(c.line_range),  # slice of the route's geometry this checkpoint covers
         "weather": {
             "wind_mph": _round_or_none(c.weather.wind_mph, 1),
             "gust_mph": _round_or_none(c.weather.gust_mph, 1),
@@ -72,7 +73,6 @@ def _route_json(r: PlannedRoute, rank: int, plan: TripPlan) -> dict:
             for st in r.stops
         ],
         "track": [[round(t), *_to_lon_lat(c)] for t, c in r.track],
-        "notices": r.notices,
     }
 
 
