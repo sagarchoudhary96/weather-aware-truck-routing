@@ -37,20 +37,41 @@ function heatmapPointFeatures(h: Heatmap): FeatureCollection {
     features: h.points.map((p, i) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: p },
-      properties: Object.fromEntries(h.risk[i].map((v, hr) => [`h${hr}`, v])),
+      properties: Object.fromEntries(h.risk[i].map((v, step) => [`s${step}`, v])),
     })),
   }
 }
 
-/** 0–1 weight for level L at a fractional hour: the blended risk value's share above L − 1. */
-function levelWeightExpression(level: number, hour: number, maxHour: number): ExpressionSpecification {
-  const h0 = Math.floor(hour)
-  const h1 = Math.min(h0 + 1, maxHour)
-  const f = hour - h0
+interface Frame {
+  from: number // step index
+  to: number
+  fraction: number // 0–1 of the way from `from` to `to`
+}
+
+const HOUR_MS = 3_600_000
+
+/**
+ * What to draw at the slider time. Still: the exact half-hour step, which matches the route colours.
+ * Moving: a fade between the on-the-hour steps around it, since rain changes hourly and an hour-long
+ * fade looks smooth. Example (UTC): 05:10 still → the 05:00 step, moving → 05:00 a sixth into 06:00.
+ */
+function frameAt(h: Heatmap, departure: string, hour: number, smooth: boolean): Frame {
+  const last = (h.risk[0]?.length ?? 1) - 1
+  const stepMs = h.step_minutes * 60_000
+  const t = Date.parse(departure) + hour * HOUR_MS
+  const start = Date.parse(h.start)
+  const index = (ms: number) => Math.min(Math.max(Math.floor((ms - start) / stepMs), 0), last)
+  if (!smooth) return { from: index(t), to: index(t), fraction: 0 }
+  const hourStart = Math.floor(t / HOUR_MS) * HOUR_MS
+  return { from: index(hourStart), to: index(hourStart + HOUR_MS), fraction: (t - hourStart) / HOUR_MS }
+}
+
+/** 0–1 weight for layer L: the (faded) risk value's share above L − 1. */
+function levelWeightExpression(level: number, { from, to, fraction }: Frame): ExpressionSpecification {
   const value: ExpressionSpecification = [
     '+',
-    ['*', ['coalesce', ['get', `h${h0}`], 0], 1 - f],
-    ['*', ['coalesce', ['get', `h${h1}`], 0], f],
+    ['*', ['coalesce', ['get', `s${from}`], 0], 1 - fraction],
+    ['*', ['coalesce', ['get', `s${to}`], 0], fraction],
   ]
   return ['min', 1, ['max', 0, ['-', value, level - 1]]]
 }
@@ -64,13 +85,16 @@ function kernelRadiusExpression(h: Heatmap): ExpressionSpecification {
 
 interface Props {
   heatmap: Heatmap
+  departure: string
   hour: number
+  smooth: boolean // fade between steps while the slider moves
   visible: boolean
 }
 
-export function RiskHeatmap({ heatmap, hour, visible }: Props) {
+export function RiskHeatmap({ heatmap, departure, hour, smooth, visible }: Props) {
   const features = useMemo(() => heatmapPointFeatures(heatmap), [heatmap])
   const radius = useMemo(() => kernelRadiusExpression(heatmap), [heatmap])
+  const frame = frameAt(heatmap, departure, hour, smooth)
 
   return (
     <Source id="level-heat" type="geojson" data={features}>
@@ -82,7 +106,7 @@ export function RiskHeatmap({ heatmap, hour, visible }: Props) {
           beforeId={BELOW_LAYER}
           layout={{ visibility: visible ? 'visible' : 'none' }}
           paint={{
-            'heatmap-weight': levelWeightExpression(level, hour, heatmap.hours),
+            'heatmap-weight': levelWeightExpression(level, frame),
             'heatmap-intensity': INTENSITY,
             'heatmap-radius': radius,
             'heatmap-color': [

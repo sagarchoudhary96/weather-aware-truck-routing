@@ -37,7 +37,7 @@ npm run dev        # http://localhost:5173
 
 - The selected route is coloured by checkpoint risk: click any route to select it.
 - Checkpoints and stops are linked between the timeline and the map.
-- The slider moves the trucks and the heatmap through 0–48 h.
+- The slider moves the trucks and the heatmap through 0–48 h. The heatmap changes every half hour, using the same forecast hours as the route checkpoints, so it matches them when the slider is still. While playing or dragging it fades between half hours to move smoothly.
 - The heatmap uses one MapLibre heatmap layer per risk level, so overlapping cells never show a higher risk than they have.
 
 ## Deploy (Vercel, free tier)

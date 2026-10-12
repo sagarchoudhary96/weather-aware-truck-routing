@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useForecastHour } from '../hooks/useForecastHour'
+import { usePlayback } from '../hooks/usePlayback'
 import { useRiskHeatmap } from '../hooks/useRiskHeatmap'
 import type { SelectedPoint, Plan } from '../types'
 import { RiskLegend } from './RiskLegend'
@@ -23,6 +24,8 @@ export function MapPanel({ plan, planVersion, isPlanning, selectedRouteId, onSel
   const [showHeatmap, setShowHeatmap] = useState(true)
   const [mapLoaded, setMapLoaded] = useState(false)
   const { heatmap, status } = useRiskHeatmap(plan, planVersion)
+  const playback = usePlayback(hour, heatmap?.hours ?? 48, setHour)
+  const [dragging, setDragging] = useState(false)
 
   return (
     <div className="map-panel">
@@ -31,6 +34,7 @@ export function MapPanel({ plan, planVersion, isPlanning, selectedRouteId, onSel
         heatmap={heatmap}
         showHeatmap={showHeatmap}
         hour={hour}
+        fadeHeatmap={playback.playing || dragging} // smooth while moving, exact when still
         selectedRouteId={selectedRouteId}
         onSelectRoute={onSelectRoute}
         selectedPoint={selectedPoint}
@@ -50,6 +54,10 @@ export function MapPanel({ plan, planVersion, isPlanning, selectedRouteId, onSel
           maxHour={heatmap?.hours ?? 48}
           departure={plan.departure}
           onChange={setHour}
+          playing={playback.playing}
+          onTogglePlay={playback.togglePlay}
+          onStopPlay={playback.stop}
+          onDraggingChange={setDragging}
           showHeatmap={showHeatmap}
           onToggleHeatmap={setShowHeatmap}
           status={status}

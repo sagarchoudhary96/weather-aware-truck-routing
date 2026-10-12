@@ -90,11 +90,12 @@ export interface SelectedPoint {
 }
 
 export interface Heatmap {
-  start: string
-  hours: number
+  start: string // time of the first value in each `risk` row
+  step_minutes: number
+  hours: number // length of the slider
   spacing_km: number
   cell_deg: [number, number] // [dlat, dlon]
   levels: RiskLevelName[]
   points: LonLat[] // cell centres
-  risk: (number | null)[][] // [cell][hour] risk level index
+  risk: (number | null)[][] // [cell][step] risk level index
 }

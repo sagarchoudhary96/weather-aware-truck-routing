@@ -24,6 +24,7 @@ interface Props {
   heatmap: Heatmap | null
   showHeatmap: boolean
   hour: number
+  fadeHeatmap: boolean
   selectedRouteId: string | null
   onSelectRoute: (id: string) => void
   selectedPoint: SelectedPoint | null
@@ -36,7 +37,7 @@ function routeLabelPosition(route: Route): LonLat {
   return route.checkpoints[Math.floor(route.checkpoints.length / 2)].position
 }
 
-export function MapView({ plan, heatmap, showHeatmap, hour, selectedRouteId, onSelectRoute, selectedPoint, onSelectPoint, onLoad }: Props) {
+export function MapView({ plan, heatmap, showHeatmap, hour, fadeHeatmap, selectedRouteId, onSelectRoute, selectedPoint, onSelectPoint, onLoad }: Props) {
   const mapRef = useRef<MapRef>(null)
   const [cursor, setCursor] = useState('')
 
@@ -95,7 +96,9 @@ export function MapView({ plan, heatmap, showHeatmap, hour, selectedRouteId, onS
         <Layer id="route-hit" type="line" paint={{ 'line-width': 16, 'line-opacity': 0 }} />
       </Source>
 
-      {heatmap && <RiskHeatmap heatmap={heatmap} hour={hour} visible={showHeatmap} />}
+      {heatmap && plan && (
+        <RiskHeatmap heatmap={heatmap} departure={plan.departure} hour={hour} smooth={fadeHeatmap} visible={showHeatmap} />
+      )}
 
       <Source id="segments" type="geojson" data={selectedRouteRiskSegments}>
         <Layer
