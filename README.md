@@ -24,7 +24,7 @@ The map shows the routes, risk-coloured checkpoints, driver stops and a corridor
 
 - **Load rules** raise the wind level only. 45–54 mph with a load over 30,000 lb is No Travel, 35–44 mph with a load over 40,000 lb is Severe.
 - **Checkpoint risk** is the worst of wind (sustained, not gusts), rain (including showers) and snow. A missing value counts as Unknown, never Low.
-- **Forecast hour:** wind uses the hour nearest the ETA. Rain and snow use the hourly total that contains the ETA, so an ETA of 14:20 uses the 14:00–15:00 total.
+- **Forecast hour:** wind uses the hour nearest the ETA. Rain and snow use the hourly total for the hour the truck is driving in, so an ETA of 14:20, or exactly 14:00, uses the 14:00–15:00 total.
 - **Miles per level:** each checkpoint covers half the gap to each neighbour. **Average risk** scores Low 0 to No Travel 4, weighted by miles.
 - **Ranking:** any No Travel disqualifies a route. Routes are then compared on fewest Severe miles, then fewest High miles, then lowest average risk, then shortest travel time.
 - **Driver breaks (US Hours of Service):** a 30-minute break after 8 h of driving and a 10-hour rest after 11 h. Breaks can be switched off in the form.

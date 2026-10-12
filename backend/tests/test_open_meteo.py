@@ -33,7 +33,7 @@ def test_wind_uses_nearest_hour_precip_uses_containing_hour():
     w = f.weather_at_time(T0 + timedelta(minutes=40))
     assert (w.wind_mph, w.rain_in_hr) == (20, 0.2)
     w = f.weather_at_time(T0 + timedelta(hours=1))
-    assert (w.wind_mph, w.rain_in_hr) == (20, 0.2)
+    assert (w.wind_mph, w.rain_in_hr) == (20, 0.4)  # exactly 13:00 → the 13:00–14:00 total it drives into
 
 
 def test_outside_window_is_unknown():
