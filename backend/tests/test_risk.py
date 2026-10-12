@@ -52,7 +52,7 @@ def test_load_rules(mph, load_lb, expected):
 def test_overall_is_worst_condition_with_reasons():
     risk = assess_weather_risk(Weather(wind_mph=30, gust_mph=40, rain_in_hr=0.3, snow_in_hr=0), load_lb=20_000)
     assert (risk.wind, risk.rain, risk.snow, risk.overall) == (M, H, L, H)
-    assert risk.reasons == ("Wind 30 mph → Moderate", "Rain 0.30 in/hr → High")
+    assert risk.reasons == ("Wind 30 mph → Moderate", "Rain 0.3 in/hr → High")
 
 
 def test_load_rule_is_named_in_reason():
@@ -69,3 +69,8 @@ def test_gusts_do_not_affect_risk():
 def test_missing_value_makes_overall_unknown():
     risk = assess_weather_risk(Weather(wind_mph=10, gust_mph=None, rain_in_hr=None, snow_in_hr=0), load_lb=0)
     assert risk.overall is None
+
+
+def test_reasons_never_round_a_value_into_another_band():
+    risk = assess_weather_risk(Weather(wind_mph=34.7, gust_mph=None, rain_in_hr=1.004, snow_in_hr=0.97), load_lb=0)
+    assert risk.reasons == ("Wind 34.7 mph → Moderate", "Rain 1.004 in/hr → No Travel", "Snow 0.97 in/hr → Moderate")

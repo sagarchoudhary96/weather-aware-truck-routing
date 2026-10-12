@@ -38,6 +38,12 @@ class RiskAssessment:
     reasons: tuple[str, ...]  # human-readable drivers of any non-Low level
 
 
+def _as_reported(value: float) -> str:
+    """The forecast value as Open-Meteo reports it (wind to 0.1 mph, rain and snow to 0.001 in),
+    so it never looks like it sits in another band. Example: 34.7 → "34.7", not "35" (High)."""
+    return f"{value:.3f}".rstrip("0").rstrip(".")
+
+
 def _level_for_value(value: float, bounds: tuple[float, ...]) -> RiskLevel:
     """Highest band whose lower bound the value reaches. Example: 37 mph with (25, 35, 45, 55) → High."""
     level = L
@@ -77,7 +83,7 @@ def assess_weather_risk(weather: Weather, load_lb: float) -> RiskAssessment:
     """Overall risk is the worst of wind, rain and snow. Gusts are ignored.
 
     Example: wind 30 mph (Moderate), rain 0.3 in/hr (High), no snow → High,
-    reasons ("Wind 30 mph → Moderate", "Rain 0.30 in/hr → High").
+    reasons ("Wind 30 mph → Moderate", "Rain 0.3 in/hr → High").
     Any missing value makes the overall level None (Unknown), never Low.
     """
     wind = rain = snow = None
@@ -87,15 +93,15 @@ def assess_weather_risk(weather: Weather, load_lb: float) -> RiskAssessment:
         wind, load_rule = classify_wind(weather.wind_mph, load_lb)
         if wind > L:
             rule = f" + {load_rule}" if load_rule else ""
-            reasons.append(f"Wind {weather.wind_mph:.0f} mph{rule} → {wind.label}")
+            reasons.append(f"Wind {_as_reported(weather.wind_mph)} mph{rule} → {wind.label}")
     if weather.rain_in_hr is not None:
         rain = classify_rain(weather.rain_in_hr)
         if rain > L:
-            reasons.append(f"Rain {weather.rain_in_hr:.2f} in/hr → {rain.label}")
+            reasons.append(f"Rain {_as_reported(weather.rain_in_hr)} in/hr → {rain.label}")
     if weather.snow_in_hr is not None:
         snow = classify_snow(weather.snow_in_hr)
         if snow > L:
-            reasons.append(f"Snow {weather.snow_in_hr:.1f} in/hr → {snow.label}")
+            reasons.append(f"Snow {_as_reported(weather.snow_in_hr)} in/hr → {snow.label}")
 
     levels = (wind, rain, snow)
     overall = None if None in levels else max(levels)

@@ -12,14 +12,15 @@ export function RiskBadge({ level }: { level: Checkpoint['risk']['overall'] }) {
   )
 }
 
-const formatValue = (v: number | null, digits: number, unit: string) => (v === null ? '—' : `${v.toFixed(digits)} ${unit}`)
+// Values arrive at the forecast's own precision. Rounding further could push one across a band edge.
+const formatValue = (v: number | null, unit: string) => (v === null ? '—' : `${v} ${unit}`)
 
 export function WeatherSummary({ weather }: { weather: Checkpoint['weather'] }) {
   return (
     <span className="weather">
-      Wind {formatValue(weather.wind_mph, 0, 'mph')}
-      {weather.gust_mph !== null && ` (gust ${weather.gust_mph.toFixed(0)})`} · Rain {formatValue(weather.rain_in_hr, 2, 'in/hr')} ·
-      Snow {formatValue(weather.snow_in_hr, 1, 'in/hr')}
+      Wind {formatValue(weather.wind_mph, 'mph')}
+      {weather.gust_mph !== null && ` (gust ${weather.gust_mph.toFixed(0)})`} · Rain {formatValue(weather.rain_in_hr, 'in/hr')} ·
+      Snow {formatValue(weather.snow_in_hr, 'in/hr')}
     </span>
   )
 }

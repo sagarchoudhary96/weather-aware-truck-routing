@@ -89,7 +89,7 @@ The response has `routes` (best first), each with `geometry`, `distance_mi`, `tr
 pytest
 ```
 
-85 tests:
+86 tests:
 - risk band boundaries and load rules
 - miles per checkpoint and ranking, including ties, rounding and disqualification
 - driver-break schedules
