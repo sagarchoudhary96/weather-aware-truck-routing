@@ -2,8 +2,7 @@
 
 Compares three truck routes using the forecast weather the truck will meet **when it reaches each point**, and recommends the safest one.
 
-- **Live app:** _TBD_
-- **Walkthrough (Loom):** _TBD_
+- **Live app:** [Link](https://weather-aware-truck-routing-eight.vercel.app/)
 
 ## How it works
 
