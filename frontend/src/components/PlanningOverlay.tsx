@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const SLOW_AFTER_MS = 8000 // a free-tier backend can take up to a minute to wake up
+const SLOW_AFTER_MS = 8000 // a plan usually takes 2–5 s
 
 /** Dims the map while a trip is being planned. */
 export function PlanningOverlay() {
@@ -18,7 +18,7 @@ export function PlanningOverlay() {
         <div>
           <strong>Planning your trip</strong>
           <p>Getting truck routes and the forecast at each checkpoint…</p>
-          {slow && <p className="muted">The server may be waking up after being idle, this can take up to a minute.</p>}
+          {slow && <p className="muted">This is taking longer than usual. The routing or weather service may be slow.</p>}
         </div>
       </div>
     </div>

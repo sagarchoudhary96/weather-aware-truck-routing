@@ -19,7 +19,7 @@ async function requestJson<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     res = await fetch(`${appConfig.apiBaseUrl}${path}`, { headers: { 'Content-Type': 'application/json' }, ...init })
   } catch {
-    throw new ApiError('Cannot reach the server. It may be waking up, try again in a minute.')
+    throw new ApiError('Cannot reach the server. Check your connection and try again.')
   }
   const body = await res.json().catch(() => null)
   if (!res.ok) throw new ApiError(errorMessageFrom(body))
