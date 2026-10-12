@@ -720,6 +720,25 @@ button.link {
   }
 }
 
+.map-loading {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  display: grid;
+  place-items: center;
+  grid-auto-flow: column;
+  justify-content: center;
+  gap: 8px;
+  background: var(--bg);
+  color: var(--ink-2);
+  font-size: 13px;
+}
+
+.map-loading .spinner {
+  color: var(--accent);
+  margin: 0;
+}
+
 .planning-overlay {
   position: absolute;
   inset: 0;

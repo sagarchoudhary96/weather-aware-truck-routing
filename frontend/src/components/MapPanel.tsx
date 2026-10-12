@@ -21,6 +21,7 @@ interface Props {
 export function MapPanel({ plan, planVersion, isPlanning, selectedRouteId, onSelectRoute, selectedPoint, onSelectPoint }: Props) {
   const [hour, setHour] = useForecastHour(planVersion)
   const [showHeatmap, setShowHeatmap] = useState(true)
+  const [mapLoaded, setMapLoaded] = useState(false)
   const { heatmap, status } = useRiskHeatmap(plan, planVersion)
 
   return (
@@ -34,7 +35,14 @@ export function MapPanel({ plan, planVersion, isPlanning, selectedRouteId, onSel
         onSelectRoute={onSelectRoute}
         selectedPoint={selectedPoint}
         onSelectPoint={onSelectPoint}
+        onLoad={() => setMapLoaded(true)}
       />
+      {/* The base map stays blank until its style and first tiles arrive. */}
+      {!mapLoaded && (
+        <div className="map-loading" role="status">
+          <span className="spinner" aria-hidden /> Loading map…
+        </div>
+      )}
       <RiskLegend />
       {plan && (
         <ForecastTimeSlider

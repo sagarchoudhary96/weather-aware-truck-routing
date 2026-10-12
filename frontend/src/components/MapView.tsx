@@ -28,6 +28,7 @@ interface Props {
   onSelectRoute: (id: string) => void
   selectedPoint: SelectedPoint | null
   onSelectPoint: (point: SelectedPoint | null) => void
+  onLoad: () => void
 }
 
 /** Route labels sit on the middle checkpoint, roughly halfway along the route. */
@@ -35,7 +36,7 @@ function routeLabelPosition(route: Route): LonLat {
   return route.checkpoints[Math.floor(route.checkpoints.length / 2)].position
 }
 
-export function MapView({ plan, heatmap, showHeatmap, hour, selectedRouteId, onSelectRoute, selectedPoint, onSelectPoint }: Props) {
+export function MapView({ plan, heatmap, showHeatmap, hour, selectedRouteId, onSelectRoute, selectedPoint, onSelectPoint, onLoad }: Props) {
   const mapRef = useRef<MapRef>(null)
   const [cursor, setCursor] = useState('')
 
@@ -63,6 +64,7 @@ export function MapView({ plan, heatmap, showHeatmap, hour, selectedRouteId, onS
       mapStyle={STYLE_URL}
       interactiveLayerIds={['route-hit', 'checkpoints']}
       onClick={handleMapClick}
+      onLoad={onLoad}
       onMouseEnter={() => setCursor('pointer')}
       onMouseLeave={() => setCursor('')}
       cursor={cursor}
