@@ -97,11 +97,10 @@ pytest
 - provider parsing and caching (mocked HTTP)
 - end-to-end API tests with fake providers.
 
-## Deploy (Render, free tier)
+## Deploy (Vercel, free tier)
 
 - **Root directory:** `backend`
-- **Build:** `pip install -r requirements.txt`
-- **Start:** `gunicorn config.wsgi --workers 1 --threads 4 --timeout 120 --bind 0.0.0.0:$PORT`
-- **Env:** `TOMTOM_API_KEY`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS=.onrender.com`, `DJANGO_HTTPS_ONLY=true`, `CORS_ALLOWED_ORIGINS=<frontend URL>`
+- **Framework preset:** Django. Vercel finds `manage.py`, installs `requirements.txt` and runs `config.wsgi.application` as one function. Python 3.13 comes from `.python-version`.
+- **Env:** `TOMTOM_API_KEY`, `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS=.vercel.app`, `DJANGO_HTTPS_ONLY=true`, `CORS_ALLOWED_ORIGINS=<frontend URL>`
 
-Use a single worker so the in-memory cache is shared by all requests. Free instances sleep after 15 minutes idle, so the first request after that takes about a minute.
+The in-memory cache lives only as long as a function instance stays warm, so repeat requests may call TomTom and Open-Meteo again.

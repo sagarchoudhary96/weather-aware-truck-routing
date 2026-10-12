@@ -28,12 +28,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# On in production (set in render.yaml), off locally, where the dev server only speaks HTTP.
+# On in production (set in the Vercel project), off locally, where the dev server only speaks HTTP.
 if os.environ.get("DJANGO_HTTPS_ONLY", "false").lower() == "true":
-    # The host (Render) terminates HTTPS and forwards the original scheme in this header.
+    # The host (Vercel) terminates HTTPS and forwards the original scheme in this header.
     SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
     SECURE_SSL_REDIRECT = True
-    SECURE_REDIRECT_EXEMPT = [r"^api/health/$"]  # platform health checks use plain HTTP
     SECURE_HSTS_SECONDS = 3600
 
 SILENCED_SYSTEM_CHECKS = [

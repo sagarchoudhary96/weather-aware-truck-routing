@@ -57,9 +57,9 @@ In a second terminal:
 cd frontend && npm install && npm run dev                      # http://localhost:5173
 ```
 
-The backend deploys to Render and the frontend to Vercel, both on free tiers. Each folder's README has the settings.
+Both parts deploy to Vercel on the free Hobby plan, as two projects from this repo. Each folder's README has the settings.
 
 ## Known limits
 
-- Free API quotas apply. Forecasts are cached for 30 minutes and routes for 10.
+- Free API quotas apply. Forecasts are cached for 30 minutes and routes for 10, within each running server instance.
 - Driver stops are placed where the driving clock runs out, not at real truck stops.

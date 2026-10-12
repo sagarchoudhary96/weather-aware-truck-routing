@@ -43,6 +43,7 @@ npm run dev        # http://localhost:5173
 ## Deploy (Vercel, free tier)
 
 - **Root directory:** `frontend`
+- **Framework preset:** Vite
 - **Build:** `npm run build`
 - **Output:** `dist`
 - **Env:** `VITE_API_URL=<backend URL>`
